@@ -8,6 +8,7 @@ class Emotion():
     def __init__(self):
         self.AllSentiment = ['PA','PE','PD','PH','PG','PB','PK','PC','NB','NJ','NH','PF','NI','NC','NG','NE','ND','NN','NK','NL','NAU','Happy','Good','Surprise','Sad','Fear','Disgust','Anger']
         self.AllSentiment_value = {stm:0 for stm in self.AllSentiment}
+        self.totalWords = 0
         self.SentimentWords = {}
         self.sentiment_struct = self.getSentiment(mode=0)
         self.sentiment_dict = self.getSentiment(mode=1)
@@ -67,7 +68,7 @@ class Emotion():
             if self.sentiment_dict[word][0] in ['NAU']:
                 self.AllSentiment_value['Anger'] += self.sentiment_dict[word][1]
             total_value += self.sentiment_dict[word][1]
-            self.SentimentWords[word] = self.sentiment_dict[word][0]
+            self.SentimentWords[word] = self.sentiment_dict[word][1]
             
         for sentiment in self.AllSentiment:
             self.AllSentiment_value[sentiment] /= total_len
@@ -77,12 +78,12 @@ class Emotion():
         self.AllSentiment_value['Sad'] /= 4
         self.AllSentiment_value['Fear'] /= 3
         self.AllSentiment_value['Disgust'] /= 5
-
+        self.totalWords = total_len
         self.sentimentValue = sorted(self.AllSentiment_value.items(),key=lambda x:x[1],reverse=True)
         self.SentimentWords = sorted(self.SentimentWords.items(),key=lambda x:x[1],reverse=True)
         
     def getTopScore(self,length = 5):
-        results = [[stm[0],stm[1]] for stm in self.sentimentValue if stm[1] != 0]
+        results = [[stm[0],stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
         return results[0:length]
     
@@ -95,7 +96,7 @@ class Emotion():
             threshold == 1
         else:
             threshold = 0.75
-        results = [[stm[0],1 if stm[1]<=threshold else 0] for stm in self.sentimentValue if stm[1] != 0]
+        results = [[stm[0],1 if stm[1]<=threshold else 0] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length,len(results))
         return results[0:length]
     
@@ -116,7 +117,7 @@ class Emotion():
             return 'anger'
     
     def getPicture(self,length=5):
-        results = [[stm[0],stm[1]] for stm in self.sentimentValue if stm[1] != 0]
+        results = [[stm[0],stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
         
         picture = []
@@ -125,7 +126,7 @@ class Emotion():
             picture.append(emoji.picture)
         return picture
     
-    def getWords(self,length=5):
-        results = [word[0] for word in self.SentimentWords if word[1]!=0]
-        length=min(length,len(results))
+    def getWords(self):
+        results = [word[0] for word in self.SentimentWords if int(word[1])>=5]
+        length = min(int(self.totalWords*0.1)+1,len(results))
         return results[0:length]
