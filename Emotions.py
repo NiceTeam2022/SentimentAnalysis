@@ -8,6 +8,7 @@ class Emotion():
     def __init__(self):
         self.AllSentiment = ['PA','PE','PD','PH','PG','PB','PK','PC','NB','NJ','NH','PF','NI','NC','NG','NE','ND','NN','NK','NL','NAU','Happy','Good','Surprise','Sad','Fear','Disgust','Anger']
         self.AllSentiment_value = {stm:0 for stm in self.AllSentiment}
+        self.SentimentWords = {}
         self.sentiment_struct = self.getSentiment(mode=0)
         self.sentiment_dict = self.getSentiment(mode=1)
         self.subsentiment_dict = self.getSentiment(mode=2)
@@ -38,6 +39,8 @@ class Emotion():
         return word_list
         
     def fit(self,text):
+        self.AllSentiment_value = {stm:0 for stm in self.AllSentiment}
+        self.SentimentWords = {}
         text_ = re.sub('[a-zA-Z]', '', text)
         words = jieba.lcut(text_)
         words = self.removeStopWords(words)
@@ -64,6 +67,8 @@ class Emotion():
             if self.sentiment_dict[word][0] in ['NAU']:
                 self.AllSentiment_value['Anger'] += self.sentiment_dict[word][1]
             total_value += self.sentiment_dict[word][1]
+            self.SentimentWords[word] = self.sentiment_dict[word][0]
+            
         for sentiment in self.AllSentiment:
             self.AllSentiment_value[sentiment] /= total_len
         
@@ -72,9 +77,10 @@ class Emotion():
         self.AllSentiment_value['Sad'] /= 4
         self.AllSentiment_value['Fear'] /= 3
         self.AllSentiment_value['Disgust'] /= 5
-        
+
         self.sentimentValue = sorted(self.AllSentiment_value.items(),key=lambda x:x[1],reverse=True)
-    
+        self.SentimentWords = sorted(self.SentimentWords.items(),key=lambda x:x[1],reverse=True)
+        
     def getTopScore(self,length = 5):
         results = [[stm[0],stm[1]] for stm in self.sentimentValue if stm[1] != 0]
         length = min(length, len(results))
@@ -118,3 +124,8 @@ class Emotion():
             emoji = Emoji(self.getClass(results[i][0]),results[i][0],5 if results[i][1]<0.75 else 10)
             picture.append(emoji.picture)
         return picture
+    
+    def getWords(self,length=5):
+        results = [word[0] for word in self.SentimentWords if word[1]!=0]
+        length=min(length,len(results))
+        return results[0:length]
