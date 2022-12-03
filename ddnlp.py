@@ -30,7 +30,7 @@ class DDNLP():
         # 分词
         self.words = jieba.lcut(self.text_)
         # 实词
-        self.notions = self.removeStopWords(words)
+        self.notions = self.removeStopWords(self.words)
         # 分句
         # 注：会忽略含英文的句子
         paras = self.text_.split('\n')
@@ -41,6 +41,7 @@ class DDNLP():
         # 刘志远，2022-12-03：应用场景选项参数内置
         # 0、1、2分别对应3个场景：公司、学校、其他
         self.status = status
+
         
         # 顾永威
         # 刘志远，2022-12-03：补充V值定义
@@ -63,6 +64,8 @@ class DDNLP():
         self.sentimentValue = []
         # 包含所有情感对应的客观性，与上者形式同样，V值变为0/1,0表示不客观,1表示客观
         self.sentimentObjectiveness = []
+        # 读入文本后开始分析
+        self.fit()
 
     # 读取文件
     # 顾永威
@@ -93,15 +96,14 @@ class DDNLP():
     # 计算情感类别强度
     # 顾永威
     # 刘志远，2022-12-03：依据新结构修改初始化部分，并增加注释
-    def fit(self, text):
+    def fit(self):
         # 重新初始化
         self.AllSentiment_value = {stm: 0 for stm in AllSentiment}
         self.SentimentWords = {}
         # 筛选情感词
-        words = self.findSentWords(self.notions)
+        words = self.findSentWords()
         total_len = len(words)
         total_value = 0
-
         for word in words:
             # 对应情感要加上情感词的V值
             self.AllSentiment_value[self.sentiment_dict[word][0]] += self.sentiment_dict[word][1]
@@ -148,12 +150,15 @@ class DDNLP():
     # 判断情感是否可以被认为是“客观”
     # 刘志远，2022-12-03：依据新结构修改初始化部分，并增加注释
     def getObjectiveness(self, length=5):
-        if status == 0: # 公司
+        threshold = 0
+        if self.status == 0: # 公司
             threshold = 0.5
-        elif status == 1: # 学校
+        elif self.status == 1: # 学校
             threshold = 0.75
-        else status == 2: # 其他
+        elif self.status == 2: # 其他
             threshold == 1
+        else:
+            threshold == 0.75
         results = [[stm[0], 1 if stm[1] <= threshold else 0]
                    for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
@@ -199,7 +204,7 @@ class DDNLP():
     
     # 平均句长
     # 刘志远，2022-12-03
-    def avg_sent_len(self): 
+    def getAverageLen(self): 
         # 保留汉字
         sents_de_punc = []
         for sent in self.sents:
@@ -208,7 +213,7 @@ class DDNLP():
     
     # 长句
     # 刘志远，2022-12-03
-    def long_sent(self):
+    def getLongSent(self):
         # 句长阈值
         threshold = 50 if self.status==0 else (60 if self.status==1 else 70)
         # 保留汉字
@@ -223,7 +228,7 @@ class DDNLP():
     
     # 信息密度
     # 刘志远，2022-12-03
-    def info_den(self):
+    def getDensity(self):
         return len(self.notions) / len(self.words)
     
     # 注：当前计算未涉及情感极性
