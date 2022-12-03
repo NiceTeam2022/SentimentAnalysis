@@ -3,6 +3,7 @@
 > 使用方法详见Document.ipynb  
 ### 等等NLP
 + 使用方法  
+    1. 注意rsc文件夹需要和Emoji.py, Emotions.py和ddnlp.py同时在当前路径下
     1. 引用DDNLP类
         ```python
         from ddnlp import DDNLP
