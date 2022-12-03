@@ -1,0 +1,230 @@
+import numpy as np
+import jieba
+import re
+import json
+from Emoji import Emoji
+
+
+# 刘志远，2022-12-03：新增了全局变量，提高时间空间效率
+
+# 所有小类和大类情感
+AllSentiment = ['PA','PE','PD','PH','PG','PB','PK','PC','NB','NJ','NH','PF','NI','NC','NG','NE','ND','NN','NK','NL','NAU','Happy','Good','Surprise','Sad','Fear','Disgust','Anger']
+
+# 停用词
+with open('./rsc/stopwords.json', 'r', encoding='utf-8') as f:
+    stopwords = f.readlines()
+    
+# 分句符号
+# 来源zhon.hanzi.sentence
+sentence_sign = '[〇一-\u9fff㐀-\u4dbf豈-\ufaff𠀀-\U0002a6df𪜀-\U0002b73f𫝀-\U0002b81f丽-\U0002fa1f⼀-⿕⺀-⻳＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､\u3000、〃〈〉《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—‘’‛“”„‟…‧﹏﹑﹔·]*[！？｡。][」﹂”』’》）］｝〕〗〙〛〉】]*'
+
+# Broadcasting计算长度
+nplen = np.frompyfunc(len, 1, 1)
+
+
+class DDNLP():
+    def __init__(self, text, status):
+        # 刘志远，2022-12-03：数据清洗步骤加入初始化，节约时间
+        # 去除英文和数字
+        self.text_ = re.sub('[a-zA-Z0-9]', '', text)
+        # 分词
+        self.words = jieba.lcut(self.text_)
+        # 实词
+        self.notions = self.removeStopWords(words)
+        # 分句
+        # 注：会忽略含英文的句子
+        paras = self.text_.split('\n')
+        sents = []
+        for para in paras:
+            sents += re.findall(sentence_sign, para)
+        self.sents = sents
+        # 刘志远，2022-12-03：应用场景选项参数内置
+        # 0、1、2分别对应3个场景：公司、学校、其他
+        self.status = status
+        
+        # 顾永威
+        # 刘志远，2022-12-03：补充V值定义
+        # 某类情感的V值定义为：SUM(情感词强度 if 情感词∈该情感类别) / COUNT(所有情感词)
+        # 大类情感需额外除以其包含的小类情感数量
+        # AllSentiment_value记录每个大小类情感对于的V值
+        self.AllSentiment_value = {stm: 0 for stm in AllSentiment}
+        # totalWords记录单词总数(必须先fit才能得到总数)
+        self.totalWords = 0
+        # 记录文本中包含的情感词
+        self.SentimentWords = {}
+        # 以下三个分别代表情感词典/情感-V/辅助情感-V，利用json读入
+        # sentiment_struct元素形式[情感,词性,小类情感,强度,极性,辅助情感,辅助情感强度,辅助情感极性]
+        self.sentiment_struct = self.getSentiment(mode=0)
+        # sentiment_dict为字典，每个元素形式 情感词:[情感,V值]
+        self.sentiment_dict = self.getSentiment(mode=1)
+        # 如上，为辅助情感，若不存在辅助情感，则为None
+        self.subsentiment_dict = self.getSentiment(mode=2)
+        # 包含所有情感对应的V值，降序排列，每个元素为一个二元列表[情感,V值]
+        self.sentimentValue = []
+        # 包含所有情感对应的客观性，与上者形式同样，V值变为0/1,0表示不客观,1表示客观
+        self.sentimentObjectiveness = []
+
+    # 读取文件
+    # 顾永威
+    # 刘志远，2022-12-03：建议也改为全局变量
+    def getSentiment(self, mode):
+        files = ['./rsc/sentiment.json', './rsc/sentimentvalue.json', './rsc/subsentimentvalue.json']
+        with open(files[mode], 'r') as f:
+            data = json.load(f)
+        return data
+
+    # 去除停用词
+    # 顾永威
+    # 刘志远，2022-12-03：纠正变量命名，改用了更快的算法，在已测试算法中效率最高
+    def removeStopWords(self, words):
+        notions = list(filter(lambda x: False if x in stopwords else True, words))
+        return notions
+    
+    # 找到文本中所有情感词
+    # 顾永威
+    # 刘志远，2022-12-03：纠正变量命名，修改输入
+    def findSentWords(self):
+        word_list = []
+        for item in self.sentiment_struct:
+            if item[0] in self.notions:
+                word_list.append(item[0])
+        return word_list
+    
+    # 计算情感类别强度
+    # 顾永威
+    # 刘志远，2022-12-03：依据新结构修改初始化部分，并增加注释
+    def fit(self, text):
+        # 重新初始化
+        self.AllSentiment_value = {stm: 0 for stm in AllSentiment}
+        self.SentimentWords = {}
+        # 筛选情感词
+        words = self.findSentWords(self.notions)
+        total_len = len(words)
+        total_value = 0
+
+        for word in words:
+            # 对应情感要加上情感词的V值
+            self.AllSentiment_value[self.sentiment_dict[word][0]] += self.sentiment_dict[word][1]
+            if self.subsentiment_dict[word][0] != None:
+                self.AllSentiment_value[self.subsentiment_dict[word][0]] += self.subsentiment_dict[word][1]
+            if self.sentiment_dict[word][0] in ['PA', 'PE']:
+                self.AllSentiment_value['Happy'] += self.sentiment_dict[word][1]
+            if self.sentiment_dict[word][0] in ['PD', 'PH', 'PG', 'PB', 'PK']:
+                self.AllSentiment_value['Good'] += self.sentiment_dict[word][1]
+            if self.sentiment_dict[word][0] in ['PC']:
+                self.AllSentiment_value['Surprise'] += self.sentiment_dict[word][1]
+            if self.sentiment_dict[word][0] in ['NB', 'NJ', 'NH', 'PF']:
+                self.AllSentiment_value['Sad'] += self.sentiment_dict[word][1]
+            if self.sentiment_dict[word][0] in ['NI', 'NC', 'NG']:
+                self.AllSentiment_value['Fear'] += self.sentiment_dict[word][1]
+            if self.sentiment_dict[word][0] in ['NE', 'ND', 'NN', 'NK', 'NL']:
+                self.AllSentiment_value['Disgust'] += self.sentiment_dict[word][1]
+            if self.sentiment_dict[word][0] in ['NAU']:
+                self.AllSentiment_value['Anger'] += self.sentiment_dict[word][1]
+            total_value += self.sentiment_dict[word][1]
+            self.SentimentWords[word] = self.sentiment_dict[word][1]
+
+        # 所有情感V值除以情感词总数
+        for sentiment in AllSentiment:
+            self.AllSentiment_value[sentiment] /= total_len
+        # 大类情感额外除以小类情感数
+        self.AllSentiment_value['Happy'] /= 2
+        self.AllSentiment_value['Good'] /= 5
+        self.AllSentiment_value['Sad'] /= 4
+        self.AllSentiment_value['Fear'] /= 3
+        self.AllSentiment_value['Disgust'] /= 5
+        self.totalWords = total_len
+        self.sentimentValue = sorted(self.AllSentiment_value.items(), key=lambda x: x[1], reverse=True)
+        self.SentimentWords = sorted(self.SentimentWords.items(), key=lambda x: x[1], reverse=True)
+    
+    # 获取强度最高的情感类别
+    # 刘志远，2022-12-03：增加注释
+    def getTopScore(self, length=5):
+        # 不考虑情感强度为0的类别
+        results = [[stm[0], stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
+        length = min(length, len(results))
+        return results[0:length]
+    
+    # 判断情感是否可以被认为是“客观”
+    # 刘志远，2022-12-03：依据新结构修改初始化部分，并增加注释
+    def getObjectiveness(self, length=5):
+        if status == 0: # 公司
+            threshold = 0.5
+        elif status == 1: # 学校
+            threshold = 0.75
+        else status == 2: # 其他
+            threshold == 1
+        results = [[stm[0], 1 if stm[1] <= threshold else 0]
+                   for stm in self.sentimentValue if float(stm[1]) != 0]
+        length = min(length, len(results))
+        return results[0:length]
+
+    # 返回小类情感对应的大类情感
+    def getClass(self, sentiment):
+        if sentiment in ['PA', 'PE']:
+            return 'happy'
+        if sentiment in ['PD', 'PH', 'PG', 'PB', 'PK']:
+            return 'good'
+        if sentiment in ['PC']:
+            return 'surprise'
+        if sentiment in ['NB', 'NJ', 'NH', 'PF']:
+            return 'sad'
+        if sentiment in ['NI', 'NC', 'NG']:
+            return 'fear'
+        if sentiment in ['NE', 'ND', 'NN', 'NK', 'NL']:
+            return 'disgust'
+        if sentiment in ['NAU']:
+            return 'anger'
+    
+    # 获取表情图片
+    def getPicture(self, length=5):
+        results = [[stm[0], stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
+        length = min(length, len(results))
+
+        picture = []
+        for i in range(length):
+            emoji = Emoji(self.getClass(results[i][0]), results[i][0], 5 if results[i][1] < 0.75 else 10)
+            picture.append(emoji.picture)
+        return picture
+    
+    # 获取强度最高的情感词
+    # 刘志远，2022-12-03：增加注释
+    # 筛选规则：
+    # 1. 强度不低于5；
+    # 2. 在所有情感词中，强度排前10%。
+    def getWords(self):
+        results = [word[0] for word in self.SentimentWords if int(word[1]) >= 5]
+        length = min(int(self.totalWords*0.1)+1, len(results))
+        return results[0:length]
+    
+    # 平均句长
+    # 刘志远，2022-12-03
+    def avg_sent_len(self): 
+        # 保留汉字
+        sents_de_punc = []
+        for sent in self.sents:
+            sents_de_punc += [re.sub('[^\u4e00-\u9fff]*', '', sent)]
+        return nplen(sents_de_punc).mean()
+    
+    # 长句
+    # 刘志远，2022-12-03
+    def long_sent(self):
+        # 句长阈值
+        threshold = 50 if self.status==0 else (60 if self.status==1 else 70)
+        # 保留汉字
+        sents_de_punc = []
+        for sent in self.sents:
+            sents_de_punc += [re.sub('[^\u4e00-\u9fff]*', '', sent)]
+        # 句长
+        sents_len = nplen(sents_de_punc)
+        # 长度大于阈值的句子
+        long_sents = [self.sents[i] for i in range(len(self.sents)) if sents_len[i] > threshold]
+        return long_sents
+    
+    # 信息密度
+    # 刘志远，2022-12-03
+    def info_den(self):
+        return len(self.notions) / len(self.words)
+    
+    # 注：当前计算未涉及情感极性
+
