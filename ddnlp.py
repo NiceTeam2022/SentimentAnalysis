@@ -12,8 +12,9 @@ AllSentiment = ['PA','PE','PD','PH','PG','PB','PK','PC','NB','NJ','NH','PF','NI'
 
 # 停用词
 # 刘志远，2022-12-05：改为txt文件
-with open('./rsc/stopwords.txt', 'r', encoding='utf-8') as f:
-    stopwords = f.read().split('\n')
+# 顾永威，2022-12-05：修复了json读入
+with open('./rsc/stopwords.json', 'r', encoding='utf-8') as f:
+    stopwords = json.load(f)
     
 # 分句符号、标点符号
 # 来源zhon.hanzi.sentence、zhon.hanzi.punctuation
@@ -106,6 +107,7 @@ class DDNLP():
         # 筛选情感词
         words = self.findSentWords()
         total_len = len(words)
+        # 顾永威，2022-12-05：修复了无中文文本情况下除以0的情况
         if total_len == 0:
             return
         total_value = 0
