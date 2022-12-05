@@ -216,7 +216,7 @@ class DDNLP():
         sents_de_punc = []
         for sent in self.sents:
             sents_de_punc += [re.sub('[^\u4e00-\u9fff]*', '', sent)]
-        return nplen(sents_de_punc).mean()
+        return nplen(sents_de_punc).nanmean()
     
     # 长句
     # 刘志远，2022-12-03
