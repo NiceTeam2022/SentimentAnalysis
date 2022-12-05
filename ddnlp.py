@@ -40,7 +40,12 @@ class DDNLP():
         paras = self.text_.split('\n')
         sents = []
         for para in paras:
-            sents += re.findall(sentence_sign, para)
+            para_sents = re.findall(sentence_sign, para)
+            # 刘志远，2022-12-05：修复了bug - 无分句符号的段落不被识别为一个句子
+            if (para != '') & (para_sents == []):
+                sents += [para]
+            else:
+                sents += para_sents
         self.sents = sents
         # 刘志远，2022-12-03：应用场景选项参数内置
         # 0、1、2分别对应3个场景：公司、学校、其他
@@ -216,7 +221,9 @@ class DDNLP():
         sents_de_punc = []
         for sent in self.sents:
             sents_de_punc += [re.sub('[^\u4e00-\u9fff]*', '', sent)]
-        return nplen(sents_de_punc).nanmean()
+        # 句长
+        sents_len = nplen(sents_de_punc)
+        return np.nanmean(sents_len)
     
     # 长句
     # 刘志远，2022-12-03
