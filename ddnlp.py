@@ -11,12 +11,14 @@ from Emoji import Emoji
 AllSentiment = ['PA','PE','PD','PH','PG','PB','PK','PC','NB','NJ','NH','PF','NI','NC','NG','NE','ND','NN','NK','NL','NAU','Happy','Good','Surprise','Sad','Fear','Disgust','Anger']
 
 # 停用词
-with open('./rsc/stopwords.json', 'r', encoding='utf-8') as f:
-    stopwords = f.readlines()
+# 刘志远，2022-12-05：改为txt文件
+with open('./rsc/stopwords.txt', 'r', encoding='utf-8') as f:
+    stopwords = f.read().split('\n')
     
-# 分句符号
-# 来源zhon.hanzi.sentence
+# 分句符号、标点符号
+# 来源zhon.hanzi.sentence、zhon.hanzi.punctuation
 sentence_sign = '[〇一-\u9fff㐀-\u4dbf豈-\ufaff𠀀-\U0002a6df𪜀-\U0002b73f𫝀-\U0002b81f丽-\U0002fa1f⼀-⿕⺀-⻳＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､\u3000、〃〈〉《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—‘’‛“”„‟…‧﹏﹑﹔·]*[！？｡。][」﹂”』’》）］｝〕〗〙〛〉】]*'
+punctuation = '＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､\u3000、〃〈〉《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—‘’‛“”„‟…‧﹏﹑﹔·！？｡。'
 
 # Broadcasting计算长度
 nplen = np.frompyfunc(len, 1, 1)
@@ -25,10 +27,11 @@ nplen = np.frompyfunc(len, 1, 1)
 class DDNLP():
     def __init__(self, text, status):
         # 刘志远，2022-12-03：数据清洗步骤加入初始化，节约时间
-        # 去除英文和数字
-        self.text_ = re.sub('[a-zA-Z0-9]', '', text)
+        # 去除英文、数字、空格
+        self.text_ = re.sub('[a-zA-Z0-9 ]', '', text)
         # 分词
         self.words = jieba.lcut(self.text_)
+        self.words = list(filter(lambda x: False if x in punctuation else True, self.words))
         # 实词
         self.notions = self.removeStopWords(self.words)
         # 分句
@@ -213,9 +216,10 @@ class DDNLP():
     
     # 长句
     # 刘志远，2022-12-03
+    # 刘志远，2022-12-05：阈值调低10
     def getLongSent(self):
         # 句长阈值
-        threshold = 50 if self.status==0 else (60 if self.status==1 else 70)
+        threshold = 40 if self.status==0 else (50 if self.status==1 else 60)
         # 保留汉字
         sents_de_punc = []
         for sent in self.sents:
