@@ -103,6 +103,8 @@ class DDNLP():
         # 筛选情感词
         words = self.findSentWords()
         total_len = len(words)
+        if total_len == 0:
+            return
         total_value = 0
         for word in words:
             # 对应情感要加上情感词的V值
