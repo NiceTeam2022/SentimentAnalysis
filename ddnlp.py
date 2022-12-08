@@ -223,6 +223,7 @@ class DDNLP():
             sents_de_punc += [re.sub('[^\u4e00-\u9fff]*', '', sent)]
         # 句长
         sents_len = nplen(sents_de_punc)
+        sents_len = sents_len.astype(float)
         return np.nanmean(sents_len)
     
     # 长句
