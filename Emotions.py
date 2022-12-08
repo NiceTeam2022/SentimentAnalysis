@@ -137,7 +137,8 @@ class Emotion():
     def getPicture(self,length=5):
         results = [[stm[0],stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
-        
+        if length == 0:
+            return ["./rsc/emoji/loading.png"]
         picture = []
         for i in range(length):
             emoji = Emoji(self.getClass(results[i][0]),results[i][0],5 if results[i][1]<0.75 else 10)
