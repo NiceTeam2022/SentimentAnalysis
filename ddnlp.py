@@ -9,7 +9,11 @@ from Emoji import Emoji
 
 # 所有小类和大类情感
 AllSentiment = ['PA','PE','PD','PH','PG','PB','PK','PC','NB','NJ','NH','PF','NI','NC','NG','NE','ND','NN','NK','NL','NAU','Happy','Good','Surprise','Sad','Fear','Disgust','Anger']
-
+#中英文对照字典
+EmoDic = {"Happy":"高兴","Good":"愉快","Surprise":"惊奇","Sad":"哀伤","Fear":"害怕","Disgust":"厌恶","Anger":"愤怒",
+          "PA":"快乐","PE":"安心","PD":"尊敬","PH":"赞扬","PG":"相信","PB":"喜爱","PK":"祝愿","NAU":"愤怒","NB":"悲伤",
+          "NJ":"失望","NH":"内疚","PF":"思念","NI":"慌张","NC":"恐惧","NG":"害羞","NE":"烦闷","ND":"憎恶","NN":"贬责",
+          "NK":"妒忌","NL":"怀疑","PC":"惊奇"}
 # 停用词
 # 刘志远，2022-12-05：改为txt文件
 # 顾永威，2022-12-05：修复了json读入
@@ -157,8 +161,12 @@ class DDNLP():
         # 不考虑情感强度为0的类别
         results = [[stm[0], stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
-        return results[0:length]
-    
+        
+        zh_results = []
+        for i in range(length):
+            zh_results.append([EmoDic[results[i][0]],results[i][1]])
+        return zh_results
+        
     # 判断情感是否可以被认为是“客观”
     # 刘志远，2022-12-03：依据新结构修改初始化部分，并增加注释
     def getObjectiveness(self, length=5):
@@ -174,7 +182,10 @@ class DDNLP():
         results = [[stm[0], 1 if stm[1] <= threshold else 0]
                    for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
-        return results[0:length]
+        zh_results = []
+        for i in range(length):
+            zh_results.append([EmoDic[results[i][0]],results[i][1]])
+        return zh_results
 
     # 返回小类情感对应的大类情感
     def getClass(self, sentiment):
