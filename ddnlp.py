@@ -162,12 +162,22 @@ class DDNLP():
     # 获取强度最高的情感类别
     # 刘志远，2022-12-03：增加注释
     def getTopScore(self, length=5):
+        threshold = 0
+        if self.status == 0: # 公司
+            threshold = 0.5
+        elif self.status == 1: # 学校
+            threshold = 0.75
+        elif self.status == 2: # 其他
+            threshold == 1
         # 不考虑情感强度为0的类别
-        results = [[stm[0], stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
+        results = [[stm[0] if stm[1] > threshold else "object", stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
-        
         zh_results = []
+        
         for i in range(length):
+            if results[i][0] == "object":
+                zh_results.append(["客观",results[i][1]])
+                break
             zh_results.append([EmoDic[results[i][0]],results[i][1]])
         return zh_results
         
@@ -210,7 +220,16 @@ class DDNLP():
     
     # 获取表情图片
     def getPicture(self, length=5):
-        results = [[stm[0], stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
+        threshold = 0
+        if self.status == 0: # 公司
+            threshold = 0.5
+        elif self.status == 1: # 学校
+            threshold = 0.75
+        elif self.status == 2: # 其他
+            threshold == 1
+        else:
+            threshold == 0.75
+        results = [[stm[0] if stm[1] > threshold else "object", stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
         if length == 0:
             return ["/rsc/emoji/loading.png"]
@@ -220,6 +239,10 @@ class DDNLP():
                 emoji = Emoji(self.getClass(results[i][0]), results[i][0], 5 if results[i][1] < 0.75 else 10)
             elif results[i][0] in BigEmotion:
                 emoji = Emoji(results[i][0],None,5 if results[i][1] < 0.75 else 10)
+            elif results[i][0] == "object":
+                emoji = Emoji("object",5 if results[i][1] < 0.75 else 10)
+                picture.append(emoji.picture)
+                return picture
             picture.append(emoji.picture)
         return picture
     

@@ -5,7 +5,7 @@ class Emoji():
         self.emotion = self.EmoAdjust(set_emotion,0)
         self.emoClass = self.EmoAdjust(set_class,1)
         self.intensity = set_intensity
-        self.picture = self.getPicturePath(self.emotion,self.intensity)
+        self.picture = self.getPicturePath()
     
     def EmoAdjust(self,emo,mode):
         if emo == None:
@@ -18,7 +18,9 @@ class Emoji():
             return emo
     
     
-    def getPicturePath(self,emo,its):
+    def getPicturePath(self):
+        if self.emotion == "object":
+            return "./rsc/emoji/loading.png"
         if self.emoClass == None:
             if self.intensity == None:
                 return "./rsc/emoji/{}.png".format(self.emotion)
