@@ -14,6 +14,10 @@ EmoDic = {"Happy":"高兴","Good":"愉快","Surprise":"惊奇","Sad":"哀伤","F
           "PA":"快乐","PE":"安心","PD":"尊敬","PH":"赞扬","PG":"相信","PB":"喜爱","PK":"祝愿","NAU":"愤怒","NB":"悲伤",
           "NJ":"失望","NH":"内疚","PF":"思念","NI":"慌张","NC":"恐惧","NG":"害羞","NE":"烦闷","ND":"憎恶","NN":"贬责",
           "NK":"妒忌","NL":"怀疑","PC":"惊奇"}
+# 大类情感
+BigEmotion = ["Happy","Good","Surprise","Sad","Fear","Disgust","Anger"]
+# 小类情感
+SmallEmotion = ['PA','PE','PD','PH','PG','PB','PK','PC','NB','NJ','NH','PF','NI','NC','NG','NE','ND','NN','NK','NL','NAU']
 # 停用词
 # 刘志远，2022-12-05：改为txt文件
 # 顾永威，2022-12-05：修复了json读入
@@ -212,7 +216,10 @@ class DDNLP():
             return ["/rsc/emoji/loading.png"]
         picture = []
         for i in range(length):
-            emoji = Emoji(self.getClass(results[i][0]), results[i][0], 5 if results[i][1] < 0.75 else 10)
+            if results[i][0] in SmallEmotion:
+                emoji = Emoji(self.getClass(results[i][0]), results[i][0], 5 if results[i][1] < 0.75 else 10)
+            elif results[i][0] in BigEmotion:
+                emoji = Emoji(results[i][0],None,5 if results[i][1] < 0.75 else 10)
             picture.append(emoji.picture)
         return picture
     
