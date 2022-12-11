@@ -161,14 +161,17 @@ class DDNLP():
     
     # 获取强度最高的情感类别
     # 刘志远，2022-12-03：增加注释
+    # 刘志远，2022-12-11：修复了返回客观异常，调整了阈值
     def getTopScore(self, length=5):
         threshold = 0
         if self.status == 0: # 公司
-            threshold = 0.5
-        elif self.status == 1: # 学校
             threshold = 0.75
+        elif self.status == 1: # 学校
+            threshold = 1
         elif self.status == 2: # 其他
-            threshold == 1
+            threshold = 1.5
+        else:
+            threshold = 1.5
         # 不考虑情感强度为0的类别
         results = [[stm[0] if stm[1] > threshold else "object", stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
@@ -186,13 +189,13 @@ class DDNLP():
     def getObjectiveness(self, length=5):
         threshold = 0
         if self.status == 0: # 公司
-            threshold = 0.5
-        elif self.status == 1: # 学校
             threshold = 0.75
+        elif self.status == 1: # 学校
+            threshold = 1
         elif self.status == 2: # 其他
-            threshold == 1
+            threshold = 1.5
         else:
-            threshold == 0.75
+            threshold = 1.5
         results = [[stm[0], 1 if stm[1] <= threshold else 0]
                    for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
@@ -222,13 +225,13 @@ class DDNLP():
     def getPicture(self, length=5):
         threshold = 0
         if self.status == 0: # 公司
-            threshold = 0.5
-        elif self.status == 1: # 学校
             threshold = 0.75
+        elif self.status == 1: # 学校
+            threshold = 1
         elif self.status == 2: # 其他
-            threshold == 1
+            threshold = 1.5
         else:
-            threshold == 0.75
+            threshold = 1.5
         results = [[stm[0] if stm[1] > threshold else "object", stm[1]] for stm in self.sentimentValue if float(stm[1]) != 0]
         length = min(length, len(results))
         if length == 0:
